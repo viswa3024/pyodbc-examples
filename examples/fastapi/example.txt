@@ -147,3 +147,47 @@ def get_users_raw():
     rows = result.mappings().all()  # ✅ get dict-like rows
     return [dict(row) for row in rows]
 
+
+===========================
+
+
+from sqlalchemy.engine import URL
+from app.config import settings
+
+connection_url = URL.create(
+    "mssql+pyodbc",
+    username=settings.DB_USER,
+    password=settings.DB_PASS,
+    host=f"tcp:{settings.DB_SERVER},1433",  # ✅ include tcp + port
+    database=settings.DB_NAME,
+    query={
+        "driver": settings.DB_DRIVER,       # ✅ keep original
+        "Encrypt": "yes",
+        "TrustServerCertificate": "no",
+        "Connection Timeout": "30",
+    },
+)
+
+
+
+========================
+
+
+from sqlalchemy.engine import URL
+from app.config import settings
+
+connection_url = URL.create(
+    "mssql+pyodbc",
+    username=settings.DB_USER,
+    password=settings.DB_PASS,
+    host=f"tcp:{settings.DB_SERVER},1433",
+    database=settings.DB_NAME,
+    query={
+        "driver": f"{{{settings.DB_DRIVER}}}",  # wrap in {}
+        "Encrypt": "yes",
+        "TrustServerCertificate": "no",
+        "Connection Timeout": "30",
+    },
+)
+
+
