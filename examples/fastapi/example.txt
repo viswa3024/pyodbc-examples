@@ -137,3 +137,13 @@ connection_url = (
     "&Encrypt=yes&TrustServerCertificate=no&Connection+Timeout=30"
 )
 
+
+=====================
+
+@router.get("/raw")
+def get_users_raw():
+    sql = text("SELECT TOP 10 id, name, email FROM testshema.employee ORDER BY id")
+    result = db.session.execute(sql)
+    rows = result.mappings().all()  # ✅ get dict-like rows
+    return [dict(row) for row in rows]
+
