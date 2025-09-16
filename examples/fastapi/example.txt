@@ -124,3 +124,16 @@ def get_users_raw():
         {"id": row.id, "name": row.name, "email": row.email}
         for row in result
     ]
+
+
+==================
+
+from app.config import settings
+
+connection_url = (
+    f"mssql+pyodbc://{settings.DB_USER}:{settings.DB_PASS}"
+    f"@{settings.DB_SERVER}:1433/{settings.DB_NAME}"
+    f"?driver={settings.DB_DRIVER.replace(' ', '+')}"
+    "&Encrypt=yes&TrustServerCertificate=no&Connection+Timeout=30"
+)
+
