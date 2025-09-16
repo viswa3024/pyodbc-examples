@@ -258,3 +258,29 @@ def get_users_raw():
     return df.to_dict(orient="records")
 
 
+
+=====================
+
+import pandas as pd
+from fastapi import APIRouter, Query
+from fastapi_sqlalchemy import db
+from sqlalchemy import text
+
+router = APIRouter(prefix="/users", tags=["Users"])
+
+@router.get("/raw")
+def get_users_raw(
+    name: str = Query(..., description="Filter by user name")
+):
+    sql = text("""
+        SELECT TOP 10 id, name, email 
+        FROM test_schema.users 
+        WHERE name = :name
+        ORDER BY id
+    """)
+
+    # Pass query params as a dict
+    df = pd.read_sql(sql, db.session.bind, params={"name": name})
+    
+    return df.to_dict(orient="records")
+
