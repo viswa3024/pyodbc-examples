@@ -3,3 +3,124 @@ DB_NAME=
 DB_USER=
 DB_PASS=
 DB_DRIVER=ODBC Driver 17 for SQL Server
+
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Settings:
+    DB_SERVER: str = os.getenv("DB_SERVER")
+    DB_NAME: str = os.getenv("DB_NAME")
+    DB_USER: str = os.getenv("DB_USER")
+    DB_PASS: str = os.getenv("DB_PASS")
+    DB_DRIVER: str = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+
+settings = Settings()
+
+
+database/dburl.py
+
+
+from sqlalchemy.engine import URL
+from app.config import settings
+
+connection_url = URL.create(
+    "mssql+pyodbc",
+    username=settings.DB_USER,
+    password=settings.DB_PASS,
+    host=settings.DB_SERVER,
+    database=settings.DB_NAME,
+    query={"driver": settings.DB_DRIVER},
+)
+
+database/models.py
+
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(50), nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+
+
+
+router/user_router.py
+
+
+from fastapi import APIRouter, Depends
+from fastapi_sqlalchemy import db
+from app.database.models import User
+
+router = APIRouter(prefix="/users", tags=["Users"])
+
+@router.post("/")
+def create_user(name: str, email: str):
+    new_user = User(name=name, email=email)
+    db.session.add(new_user)
+    db.session.commit()
+    db.session.refresh(new_user)
+    return {"id": new_user.id, "name": new_user.name, "email": new_user.email}
+
+@router.get("/")
+def get_users():
+    users = db.session.query(User).all()
+    return [{"id": u.id, "name": u.name, "email": u.email} for u in users]
+
+
+main.py
+
+from fastapi import FastAPI
+from fastapi_sqlalchemy import DBSessionMiddleware
+from app.database.dburl import connection_url
+from app.router import user_router
+from app.database.models import Base
+from sqlalchemy import create_engine
+
+app = FastAPI(title="FastAPI + SQL Server Example")
+
+# Add DB middleware
+app.add_middleware(DBSessionMiddleware, db_url=str(connection_url))
+
+# Create tables if not exist
+engine = create_engine(connection_url)
+Base.metadata.create_all(bind=engine)
+
+# Include routers
+app.include_router(user_router.router)
+
+@app.get("/")
+def root():
+    return {"message": "FastAPI + SQL Server is running!"}
+
+
+==================================
+
+# ✅ Raw SQL execution endpoint
+@router.get("/raw")
+def get_users_raw():
+    sql = text("SELECT id, name, email FROM users")
+    result = db.session.execute(sql).fetchall()
+    return [
+        {"id": row.id, "name": row.name, "email": row.email}
+        for row in result
+    ]
+
+
+=============================
+
+@router.get("/raw")
+def get_users_raw():
+    sql = text("SELECT TOP 10 id, name, email FROM test_schema.users ORDER BY id")
+    result = db.session.execute(sql).fetchall()
+    return [
+        {"id": row.id, "name": row.name, "email": row.email}
+        for row in result
+    ]
