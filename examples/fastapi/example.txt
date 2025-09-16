@@ -191,3 +191,35 @@ connection_url = URL.create(
 )
 
 
+===================
+
+DB_PORT=1433
+
+ DB_PORT: str = os.getenv("DB_PORT", "1433")
+
+connection_url = (
+    f"mssql+pyodbc://{settings.DB_USER}:{settings.DB_PASS}"
+    f"@{settings.DB_SERVER}:{settings.DB_PORT}/{settings.DB_NAME}"
+    f"?driver={settings.DB_DRIVER.replace(' ', '+')}"
+    "&Encrypt=yes&TrustServerCertificate=no&Connection+Timeout=30"
+)
+
+
+
+from sqlalchemy.engine import URL
+from app.config import settings
+
+connection_url = URL.create(
+    "mssql+pyodbc",
+    username=settings.DB_USER,
+    password=settings.DB_PASS,
+    host=f"tcp:{settings.DB_SERVER},{settings.DB_PORT}",  # ✅ now reads from env
+    database=settings.DB_NAME,
+    query={
+        "driver": f"{{{settings.DB_DRIVER}}}",  # wrap in {}
+        "Encrypt": "yes",
+        "TrustServerCertificate": "no",
+        "Connection Timeout": "30",
+    },
+)
+
